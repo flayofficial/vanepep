@@ -3,7 +3,7 @@ const { default: makeWASocket, useMultiFileAuthState, downloadContentFromMessage
 const chalk = require('chalk')
 const readline = require('readline')
 const pino = require('pino')
-const fs = require("fs");
+const fs = require("fs")
 const figlet = require("figlet")
 const PhoneNumber = require('awesome-phonenumber')
 const moment = require('moment')
@@ -32,7 +32,7 @@ async function startronzz() {
   console.log(chalk.bold.green(figlet.textSync('Velzzy', {
     font: 'Standard',
     horizontalLayout: 'default',
-    vertivalLayout: 'default',
+    verticalLayout: 'default',
     whitespaceBreak: false
   })))
   delay(100)
@@ -58,23 +58,23 @@ async function startronzz() {
   })
    
   if (usePairingCode && !ronzz.authState.creds.registered) {
-    const phoneNumber = await question(color('\n\nSilahkan masukkan nomor Whatsapp bot anda, awali dengan 62:\n', 'magenta'));
+    const phoneNumber = await question(color('\n\nSilahkan masukkan nomor Whatsapp bot anda, awali dengan 62:\n', 'magenta'))
     const code = await ronzz.requestPairingCode(phoneNumber.trim())
-    console.log(color(`⚠︎ Phone number:`,"gold"), color(`${phoneNumber}`, "white"))
-	console.log(color(`⚠︎ Pairing code:`,"gold"), color(`${code}`, "white"))
+    console.log(color(`⚠︎ Phone number:`, "gold"), color(`${phoneNumber}`, "white"))
+    console.log(color(`⚠︎ Pairing code:`, "gold"), color(`${code}`, "white"))
   }
   
   ronzz.ev.on("connection.update", ({ connection }) => {
     if (connection === "open") {
-      console.log("CONNECTION OPEN ( +" + ronzz.user?.["id"]["split"](":")[0] + " || "+ ronzz.user?.["name"] +" )")
+      console.log("CONNECTION OPEN ( +" + ronzz.user?.["id"].split(":")[0] + " || " + ronzz.user?.["name"] + " )")
     }
     if (connection === "close") {
-      console.log("Connection closed, tolong hapus file session dan scan ulang");
+      console.log("Connection closed, tolong hapus file session dan scan ulang")
       startronzz()
     }
     if (connection === "connecting") {
       if (ronzz.user) {
-        console.log("CONNECTION FOR ( +" + ronzz.user?.["id"]["split"](":")[0] + " || "+ ronzz.user?.["name"] +" )")
+        console.log("CONNECTION FOR ( +" + ronzz.user?.["id"].split(":")[0] + " || " + ronzz.user?.["name"] + " )")
       }
     }
   })
@@ -90,33 +90,37 @@ async function startronzz() {
     require('./index')(ronzz, msg, m, store)
   })
   
-  ronzz.ev.on('group-participants.update', async (update) =>{
-    let welcome = JSON.parse(fs.readFileSync('./database/welcome.json'))
-    if (!welcome.includes(update.id)) return
-    groupResponseDemote(ronzz, update)
-    groupResponsePromote(ronzz, update)
-    groupResponseWelcome(ronzz, update)
-    groupResponseRemove(ronzz, update)
-    console.log(update)
+  ronzz.ev.on('group-participants.update', async (update) => {
+    try {
+      let welcome = JSON.parse(fs.readFileSync('./database/welcome.json'))
+      if (!welcome.includes(update.id)) return
+      groupResponseDemote(ronzz, update)
+      groupResponsePromote(ronzz, update)
+      groupResponseWelcome(ronzz, update)
+      groupResponseRemove(ronzz, update)
+      console.log(update)
+    } catch (error) {
+      console.error("Error handling group participants update:", error)
+    }
   })
   
-  ronzz.ev.process(async (events) => {
-    if (events['presence.update']) {
-      await ronzz.sendPresenceUpdate('available')
-    }
-    if (events['messages.upsert']) {
-      const upsert = events['messages.upsert']
-      for (let msg of upsert.messages) {
-        if (msg.key.remoteJid === 'status@broadcast') {
-          if (msg.message?.protocolMessage) return
-            await delay(1000)
-            await ronzz.readMessages([msg.key])
-        }
+  ronzz.ev.on('presence.update', async () => {
+    await ronzz.sendPresenceUpdate('available')
+  })
+  
+  ronzz.ev.on('messages.upsert', async (events) => {
+    const upsert = events['messages.upsert']
+    for (let msg of upsert.messages) {
+      if (msg.key.remoteJid === 'status@broadcast') {
+        if (msg.message?.protocolMessage) return
+        await delay(1000)
+        await ronzz.readMessages([msg.key])
       }
     }
-    if (events['creds.update']) {
-      await saveCreds()
-    }
+  })
+  
+  ronzz.ev.on('creds.update', async () => {
+    await saveCreds()
   })
   
   ronzz.getName = (jid, withoutContact = false) => {
@@ -136,22 +140,21 @@ async function startronzz() {
     let list = []
     for (let i of contact) {
       list.push({
-        lisplayName: ownerNomer.includes(i) ? ownerName : await ronzz.getName(i + '@s.whatsapp.net'), 
+        displayName: ownerNomer.includes(i) ? ownerName : await ronzz.getName(i + '@s.whatsapp.net'), 
         vcard: `BEGIN:VCARD\nVERSION:3.0\nN:${ownerNomer.includes(i) ? ownerName : await ronzz.getName(i + '@s.whatsapp.net')}\nFN:${ownerNomer.includes(i) ? ownerName : await ronzz.getName(i + '@s.whatsapp.net')}\nitem1.TEL;waid=${i}:${i}\nitem1.X-ABLabel:Ponsel\nEND:VCARD`
       })
     }
     list.push({
-      lisplayName: "Ronzz YT",
+      displayName: "Ronzz YT",
       vcard: "BEGIN:VCARD\nVERSION:3.0\nN:Ronzz YT\nFN:Ronzz YT\nitem1.TEL;waid=62882000253706:+62 882-0002-53706\nitem1.X-ABLabel:Ponsel\nitem2.EMAIL;type=INTERNET:admin@ronzzyt.com\nitem2.X-ABLabel:Email\nitem3.URL:https://youtube.com/c/RonzzYT\nitem3.X-ABLabel:YouTube\nitem4.ADR:;;;;;Indonesia\nitem4.X-ABLabel:Region\nEND:VCARD"
     })
     return ronzz.sendMessage(jid, { contacts: { displayName: `${list.length} Kontak`, contacts: list }, ...opts }, { quoted })
-  }
-  
+
   ronzz.sendImage = async (jid, path, caption = '', quoted = '', options) => {
     let buffer = Buffer.isBuffer(path) ? path : /^data:.*?\/.*?;base64,/i.test(path) ? Buffer.from(path.split`,`[1], 'base64') : /^https?:\/\//.test(path) ? await (await getBuffer(path)) : fs.existsSync(path) ? fs.readFileSync(path) : Buffer.alloc(0)
     return await ronzz.sendMessage(jid, { image: buffer, caption: caption, ...options }, { quoted })
   }
-  
+
   ronzz.decodeJid = (jid) => {
     if (!jid) return jid
     if (/:\d+@/gi.test(jid)) {
@@ -159,7 +162,7 @@ async function startronzz() {
       return decode.user && decode.server && decode.user + '@' + decode.server || jid
     } else return jid
   }
-  
+
   ronzz.sendImageAsSticker = async (jid, path, quoted, options = {}) => {
     let buff = Buffer.isBuffer(path) ? path : /^data:.*?\/.*?;base64,/i.test(path) ? Buffer.from(path.split`,`[1], 'base64') : /^https?:\/\//.test(path) ? await (await getBuffer(path)) : fs.existsSync(path) ? fs.readFileSync(path) : Buffer.alloc(0)
     let buffer
@@ -187,11 +190,12 @@ async function startronzz() {
       return response
     })
   }
-  
+
   ronzz.autoRead = true
   ronzz.autoKetik = true
-  
+
   return ronzz
 }
 
 startronzz()
+
